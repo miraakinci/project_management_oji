@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="text-center p-5 bg-light rounded-3">
+    <h1 class="display-4">AI-Augmented Project Management</h1>
+    <p class="lead">Enter your project vision below to get started.</p>
+    <hr class="my-4">
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <textarea name="prompt" class="form-control" rows="5" placeholder="e.g., Transform our organization into a data-driven, digitally-enabled enterprise..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">Generate Project Flow</button>
+    </form>
+</div>
+{% endblock %}
