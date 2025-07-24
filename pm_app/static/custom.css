@@ -1,0 +1,49 @@
+/* This centers the whole block on the page */
+.form-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    padding: 20px;
+}
+
+/* NEW: Make the form a flex container to control its children */
+.chat-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 600px; /* Set the max-width on the form */
+    gap: 15px; /* This adds 15px of space between the textarea and the button */
+}
+
+/* Updated input style for a cleaner look */
+.chat-input {
+    width: 100%; /* The input will now fill the width of .chat-form */
+    min-height: 80px;
+    padding: 16px;
+    border: 1px solid #dcdcdc;
+    border-radius: 18px; /* Softer edges */
+    font-size: 16px;
+    resize: vertical; /* A good practice to allow users to resize the text area vertically */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    outline: none;
+}
+
+/* Updated button style */
+.chat-btn {
+    width: 100%; /* The button will also fill the width of .chat-form */
+    border-radius: 18px; /* Match the input's border-radius */
+    padding: 12px 20px;
+    font-size: 17px;
+    font-weight: 500;
+}
+ul.errorlist {
+    display: none !important;
+}

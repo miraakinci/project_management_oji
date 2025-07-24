@@ -1,65 +1,60 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Project, Outcome, Benefit, Deliverable, Task
 import json
+from .forms import InputForm
+from django.http import JsonResponse
+from .openapi_client import generate_flow_from_vision
+from .helper import find_similar_projects
 
-# A mock function to simulate the LLM API call
-def get_project_flow_from_llm(prompt):
-    """
-    In a real application, you would make an API call to your LLM here.
-    You would also connect to your vector database to get relevant information.
-    For now, we'll return some mock data based on the screenshots.
-    """
-    return {
-        "outcomes": ["30% efficiency improvement", "Real-time data insights"],
-        "benefits": ["$2M annual savings", "Enhanced customer experience"],
-        "deliverables": ["New CRM system", "Analytics dashboard"],
-        "tasks": [
-            {"name": "Phase 1", "start": "2025-01-01", "end": "2025-02-15"},
-            {"name": "Phase 2", "start": "2025-02-15", "end": "2025-03-10"},
-            {"name": "Phase 3", "start": "2025-03-10", "end": "2025-04-20"},
-            {"name": "Phase 4", "start": "2025-04-20", "end": "2025-05-30"},
-        ]
-    }
 
 def index(request):
     """
     Handles the initial prompt submission page.
     """
     if request.method == 'POST':
-        prompt = request.POST.get('prompt')
-        
-        # 1. Get project flow from the mock LLM function
-        project_flow_data = get_project_flow_from_llm(prompt)
+        form = InputForm(request.POST)
 
-        # 2. Create Project and related objects in the database
-        project = Project.objects.create(name="New Project from Vision", vision=prompt)
-        
-        for item in project_flow_data['outcomes']:
-            Outcome.objects.create(project=project, description=item)
-        
-        for item in project_flow_data['benefits']:
-            Benefit.objects.create(project=project, description=item)
-        
-        # Create deliverables and their associated tasks
-        for deliverable_desc in project_flow_data['deliverables']:
-            d = Deliverable.objects.create(project=project, description=deliverable_desc)
-            # For this mock-up, we'll just assign all tasks to the first deliverable
-            # In a real scenario, the LLM would specify which tasks belong to which deliverable
-        
-        # We need at least one deliverable to assign tasks to.
-        first_deliverable = project.deliverables.first()
-        if first_deliverable:
-             for task_item in project_flow_data['tasks']:
-                 Task.objects.create(
-                     deliverable=first_deliverable, 
-                     name=task_item['name'], 
-                     start_date=task_item['start'], 
-                     end_date=task_item['end']
-                )
+        if form.is_valid():
+            prompt = form.cleaned_data['prompt']
 
-        # Redirect to the editable project flow page
-        return redirect('project_flow', project_id=project.id)
-        
+            print(prompt)
+
+            #find relevant past projects
+            similar_projects = find_similar_projects(prompt)
+            
+            project_flow_data = generate_flow_from_vision(prompt, similar_projects)
+
+            project_title = project_flow_data.get('title', 'Untitled Project')
+
+            project = Project.objects.create(name=project_title, vision=prompt)
+
+            # 3. Create related objects in the database
+            for item in project_flow_data.get('outcomes', []):
+                Outcome.objects.create(project=project, description=item)
+            
+            for item in project_flow_data.get('benefits', []):
+                Benefit.objects.create(project=project, description=item)
+            
+            for deliverable_desc in project_flow_data.get('deliverables', []):
+                Deliverable.objects.create(project=project, description=deliverable_desc)
+            
+            first_deliverable = project.deliverables.first()
+            if first_deliverable:
+                for task_item in project_flow_data.get('tasks', []):
+                    # Ensure task_item is a dictionary with the expected keys
+                    if isinstance(task_item, dict):
+                        Task.objects.create(
+                            deliverable=first_deliverable, 
+                            name=task_item.get('name', 'Unnamed Task'), 
+                            start_date=task_item.get('start', None), 
+                            end_date=task_item.get('end', None)
+                        )
+
+            # Redirect to the editable project flow page
+            return redirect('project_flow', project_id=project.id)
+        else:
+            return render(request, 'pm_app/index.html', {'form': form, 'error': 'Invalid form submission'})
+            
     return render(request, 'pm_app/index.html')
 
 def project_flow(request, project_id):

@@ -1,16 +1,13 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="text-center p-5 bg-light rounded-3">
-    <h1 class="display-4">AI-Augmented Project Management</h1>
-    <p class="lead">Enter your project vision below to get started.</p>
-    <hr class="my-4">
-    <form method="post">
+<div class="form-wrapper">
+    <h1 class="display-4 text-center">AI-Augmented Project Management</h1>
+    <p class="lead text-center">Enter your project vision below to get started.</p>
+    <form method="post" class="chat-form">
         {% csrf_token %}
-        <div class="mb-3">
-            <textarea name="prompt" class="form-control" rows="5" placeholder="e.g., Transform our organization into a data-driven, digitally-enabled enterprise..."></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary btn-lg">Generate Project Flow</button>
+        <textarea name="prompt" class="chat-input" placeholder="Type your project vision..." maxlength="500" required></textarea>
+        <button type="submit" class="btn btn-primary btn-lg chat-btn">Generate Project Flow</button>
     </form>
 </div>
 {% endblock %}

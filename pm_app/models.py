@@ -29,6 +29,6 @@ class Task(models.Model):
     # This links a task to a specific deliverable.
     deliverable = models.ForeignKey(Deliverable, related_name='tasks', on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     progress = models.IntegerField(default=0)
