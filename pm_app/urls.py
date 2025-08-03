@@ -10,4 +10,7 @@ urlpatterns = [
     
     # The final page with the gantt chart, it also needs a project_id
     path('gantt/<int:project_id>/', views.gantt_chart, name='gantt_chart'),
+
+    path('ajax/project/<int:project_id>/generate-tasks/', views.generate_tasks_ajax, name='generate_tasks_ajax'),
+
 ]

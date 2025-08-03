@@ -27,8 +27,9 @@ class Deliverable(models.Model):
 class Task(models.Model):
     """A specific task required to create a deliverable. A deliverable has many tasks."""
     # This links a task to a specific deliverable.
-    deliverable = models.ForeignKey(Deliverable, related_name='tasks', on_delete=models.CASCADE)
+    deliverable = models.ForeignKey(Deliverable, related_name='tasks', on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=255)
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
-    progress = models.IntegerField(default=0)
+    responsible_team = models.CharField(max_length=255, default='Unassigned')
+    duration = models.CharField(max_length=50, default='1 day')  
+    start_date = models.DateField(null=True, blank=True)  
+    end_date = models.DateField(null=True, blank=True)  

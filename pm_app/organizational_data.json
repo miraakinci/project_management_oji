@@ -1,0 +1,122 @@
+[
+  {
+    "id": "org_team_01",
+    "team_name": "Investments",
+    "document": "The Investments team defines and executes the firm’s asset-allocation and security-selection strategies. They translate market research into actionable portfolios that meet risk-return objectives and regulatory constraints. Typical projects include strategic asset-allocation reviews, launching new fund strategies, integrating ESG and factor-based tilts, developing or replacing portfolio/risk management systems, and implementing investment-committee reporting portals.",
+    "responsibilities": [
+      "Set strategic and tactical asset-allocation frameworks",
+      "Conduct fundamental and quantitative research across asset classes",
+      "Monitor portfolio risk metrics and enforce mandate limits",
+      "Perform performance attribution, stress-testing and scenario analysis",
+      "Liaise with Compliance on investment guidelines and with Operations on trade settlement"
+    ]
+  },
+  {
+    "id": "org_team_02",
+    "team_name": "Investment Operations",
+    "document": "The Investment Operations team handles the middle- and back-office processes that support portfolio managers. They ensure trades are confirmed, settled, and reconciled correctly, and that valuations and P&Ls are accurate. Typical projects include OMS/PMS upgrades, automated reconciliation workflows, migration to new unit-pricing engines, regulatory reporting enhancements, and integration of vendor data feeds.",
+    "responsibilities": [
+      "Execute and settle trades with custodians and brokers",
+      "Reconcile positions, cash and corporate actions daily",
+      "Calculate NAVs, unit pricing and performance metrics",
+      "Maintain position-keeping and order-management systems",
+      "Support month-end and year-end investment close"
+    ]
+  },
+  {
+    "id": "org_team_03",
+    "team_name": "Distribution – Sales",
+    "document": "The Distribution-Sales team drives revenue by pitching investment products to institutional, wholesale, and intermediary clients. They build pipelines, negotiate mandates, and manage strategic relationships. Typical projects include new fund launch roadshows, coverage model redesign, CRM/sales-enablement tool implementation, and commission-model restructuring.",
+    "responsibilities": [
+      "Identify and qualify new client prospects",
+      "Maintain relationships with consultants, advisers and asset owners",
+      "Prepare and present product pitches and RFP responses",
+      "Negotiate fee schedules and legal terms",
+      "Track sales pipeline and AUM growth"
+    ]
+  },
+  {
+    "id": "org_team_04",
+    "team_name": "Distribution – Marketing",
+    "document": "The Distribution-Marketing team develops brand, digital, and product marketing strategies to support sales. They manage positioning, content, events, and multi-channel campaigns. Typical projects include global brand refreshes, go-to-market planning for new strategies, marketing-automation deployment, ESG marketing integration, and website redesign.",
+    "responsibilities": [
+      "Create product positioning, messaging and marketing collateral",
+      "Manage digital channels (website, social, email campaigns)",
+      "Plan and execute client events, roadshows and webinars",
+      "Coordinate third-party research, thought leadership and PR",
+      "Track campaign ROI and client engagement metrics"
+    ]
+  },
+  {
+    "id": "org_team_05",
+    "team_name": "Distribution – Client Service",
+    "document": "The Distribution-Client Service team delivers post-sale support to clients. They ensure smooth onboarding, timely reporting, and swift resolution of queries to maintain high satisfaction. Typical projects include implementing client-portals, automating ad hoc reporting, redesigning onboarding workflows, integrating CRM with reporting tools, and developing client-education programs.",
+    "responsibilities": [
+      "Manage client onboarding and account setup",
+      "Deliver periodic performance reports and data extracts",
+      "Respond to client inquiries about holdings, trades and fees",
+      "Coordinate with Operations on corporate actions and governance",
+      "Conduct client-service reviews and satisfaction surveys"
+    ]
+  },
+  {
+    "id": "org_team_06",
+    "team_name": "Operations",
+    "document": "The Operations team oversees all non-investment transactional functions that keep the firm running. They manage fund accounting, trade support, corporate actions, and vendor relationships across products. Typical projects include corporate-actions engine replacements, migrating fund-accounting platforms to the cloud, robotic process automation, and implementing global operations-governance models.",
+    "responsibilities": [
+      "Oversee fund accounting and general ledger processes",
+      "Process corporate actions and shareholder communications",
+      "Manage relationships with administrators, custodians and transfer agents",
+      "Supervise trade-support teams and exception management",
+      "Implement operational risk and control frameworks"
+    ]
+  },
+  {
+    "id": "org_team_07",
+    "team_name": "Finance",
+    "document": "The Finance team owns the firm’s financial health. They prepare management and statutory accounts, drive budgeting and forecasting, and ensure compliance with audit and tax requirements. Typical projects include ERP system implementation, IFRS adoption programs, cost-transformation initiatives, tax automation, and finance-analytics upgrades.",
+    "responsibilities": [
+      "Produce monthly P&L, balance sheet and cash-flow reports",
+      "Lead annual budgeting and long-range financial planning",
+      "Manage cost-allocation, expense-management and fee reconciliation",
+      "Coordinate internal and external audits",
+      "Ensure compliance with GAAP/IFRS and regulatory capital rules"
+    ]
+  },
+  {
+    "id": "org_team_08",
+    "team_name": "Change",
+    "document": "The Change team steers strategic transformation initiatives across the firm. They apply project- and programme-management best practices, governance, and stakeholder engagement to deliver on critical milestones. Typical projects include platform rationalisation, regulatory-change implementation, post-merger integration, and global data-governance deployment.",
+    "responsibilities": [
+      "Establish PMO governance and project-methodology framework",
+      "Define business requirements and translate into solution design",
+      "Coordinate cross-functional project teams and third-party vendors",
+      "Track project budgets, timelines and benefit realisation",
+      "Manage change-communications and training programmes"
+    ]
+  },
+  {
+    "id": "org_team_09",
+    "team_name": "Technology",
+    "document": "The Technology team designs, builds, and supports the firm’s IT infrastructure and applications. They deliver digital solutions that power trading, research, distribution, and enterprise functions. Typical projects include front-to-back OMS implementations, data-lake builds, cloud migrations, cybersecurity initiatives, and client-portal/mobile-app development.",
+    "responsibilities": [
+      "Define IT architecture and integration standards",
+      "Develop and maintain proprietary and third-party applications",
+      "Manage network, server and cloud-infrastructure platforms",
+      "Oversee cybersecurity, IAM and data-protection programmes",
+      "Provide desktop-support and incident-management services"
+    ]
+  },
+  {
+    "id": "org_team_10",
+    "team_name": "Product",
+    "document": "The Product team is responsible for defining, packaging, and governing the firm’s investment solutions. They own product roadmaps, design product features, set pricing, and manage product-lifecycle events. Typical projects include launching mutual funds and ETFs, fee-structure redesign, product consolidation programs, and ESG/factor-product development.",
+    "responsibilities": [
+      "Develop and maintain product strategy and roadmap",
+      "Define product specifications, positioning and pricing",
+      "Conduct competitor, regulatory and client-needs analysis",
+      "Manage product-governance forums and steering committees",
+      "Monitor product performance and drive enhancements"
+    ]
+  }
+]

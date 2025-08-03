@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'pm_app'
+    'pm_app.apps.PmAppConfig'
 ]
 
 MIDDLEWARE = [
