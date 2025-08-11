@@ -11,23 +11,23 @@ class Project(models.Model):
 
 class Outcome(models.Model):
     """A desired outcome of the project. A project can have many outcomes."""
-    project = models.ForeignKey(Project, related_name='outcomes', on_delete=models.CASCADE)
+    projectID = models.ForeignKey(Project, related_name='outcomes', on_delete=models.CASCADE)
     description = models.TextField()
 
 class Benefit(models.Model):
     """A specific benefit achieved from an outcome. A project can have many benefits."""
-    project = models.ForeignKey(Project, related_name='benefits', on_delete=models.CASCADE)
+    outcomeID = models.ForeignKey(Outcome, related_name='benefits', on_delete=models.CASCADE)
     description = models.TextField()
 
 class Deliverable(models.Model):
     """A tangible item produced to realize benefits. A project can have many deliverables."""
-    project = models.ForeignKey(Project, related_name='deliverables', on_delete=models.CASCADE)
+    benefitID = models.ForeignKey(Benefit, related_name='deliverables', on_delete=models.CASCADE)
     description = models.TextField()
 
 class Task(models.Model):
     """A specific task required to create a deliverable. A deliverable has many tasks."""
     # This links a task to a specific deliverable.
-    deliverable = models.ForeignKey(Deliverable, related_name='tasks', on_delete=models.CASCADE, null=True, blank=True)
+    deliverableID = models.ForeignKey(Deliverable, related_name='tasks', on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=255)
     responsible_team = models.CharField(max_length=255, default='Unassigned')
     duration = models.CharField(max_length=50, default='1 day')  

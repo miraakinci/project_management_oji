@@ -22,10 +22,13 @@ class Command(BaseCommand):
     def _load_projects(self):
         """
         Loads project data from projects_data.json into the 'projects' collection.
+        This version is updated to handle the new nested JSON structure.
         """
         self.stdout.write("Processing projects...")
         
         # 1. Get the specific collection for projects
+        # Note: The collection name "projects" here is different from the one in the service.
+        # Ensure consistency or use a new name.
         project_collection = get_or_create_collection("projects")
         
         # 2. Check for the JSON file
@@ -41,24 +44,19 @@ class Command(BaseCommand):
         documents_to_add = []
         metadatas_to_add = []
 
-        # 3. Process each project (your existing logic is preserved here)
+        # 3. Process each project using the new nested structure
         for project in projects:
             ids_to_add.append(project['id'])
-            documents_to_add.append(project['document'])
-
-            metadata = project['metadata']
-            deliverables_string = ""
-            if 'deliverables' in metadata and isinstance(metadata['deliverables'], list):
-                for deliverable in metadata['deliverables']:
-                    deliverables_string += f"Title: {deliverable.get('title', '')}\n"
-                    for task in deliverable.get('tasks', []):
-                        deliverables_string += f"- {task}\n"
-                    deliverables_string += "\n"
             
+            # The 'document' key is a single string and is perfect for embedding
+            documents_to_add.append(project['metadata']['document'])
+
+            # Store the entire nested metadata dictionary as-is
+            # The metadata object itself is a dictionary, but its values must be primitive types.
+            # We serialize the complex 'outcomes' list to a JSON string.
             flat_metadata = {
-                "title": metadata.get('title', ''),
-                "benefits": metadata.get('benefits', ''),
-                "deliverables": deliverables_string.strip()
+                "title": project['metadata']['title'],
+                "outcomes_json": json.dumps(project['metadata']['outcomes']) # Serialize the list to a string
             }
             metadatas_to_add.append(flat_metadata)
 
