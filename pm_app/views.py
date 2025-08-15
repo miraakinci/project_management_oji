@@ -8,8 +8,16 @@ from .forms import InputForm
 from django.http import JsonResponse
 from .openapi_client import generate_flow_from_vision, update_flow_with_llm
 from .helper import find_similar_projects, find_similar_teams, serialize_project_flow, validate_and_serialize_sample_project
-from datetime import date
+from datetime import date, timedelta
+import plotly.express as px
+import plotly.offline as op
+import pandas as pd
 import traceback
+from . import documents_helper
+import csv
+from django.http import HttpResponse
+import base64
+import plotly.graph_objects as go
 
 
 def index(request):
@@ -188,10 +196,211 @@ def update_flow_ajax(request, project_id):
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
-def gantt_chart(request, project_id):
-    """
-    This view might now be deprecated or repurposed, as the main page is project_flow.
-    """
+
+
+def _duration_to_days(s, default=7):
+    if not s: return default
+    try:
+        num, unit = s.split()
+        num = int(num)
+        return num * 7 if 'week' in unit.lower() else num
+    except Exception:
+        return default
+
+def gantt_chart_data(request, project_id):
     project = get_object_or_404(Project, id=project_id)
-    # ... rest of your gantt chart logic
-    return render(request, 'pm_app/gantt_chart.html', {'project': project})
+    qs = (Task.objects
+            .filter(deliverableID__benefitID__outcomeID__projectID=project)
+            .order_by('id'))
+    if not qs.exists():
+        return JsonResponse({"png": None, "message": "No tasks found."})
+
+    rows, rolling = [], date.today()
+    for t in qs:
+        if t.start_date and t.end_date:
+            #print(f"Task {t.name} has start and end dates: {t.start_date} to {t.end_date}")
+            start, end = t.start_date, t.end_date
+        else:
+            #print('No start or end date for task:', t.name, 'duration:', t.duration)
+            days = _duration_to_days(t.duration)
+            start =  (t.start_date or rolling)
+            end = start + timedelta(days=days)
+            rolling = end + timedelta(days=1)
+        rows.append({
+            "Task": t.name or "Untitled Task",
+            "Start": start, "Finish": end,
+            "Team": t.responsible_team or "Unassigned",
+        })
+
+    
+    df = pd.DataFrame(rows)
+    df["Start"] = pd.to_datetime(df["Start"], errors="coerce")
+    df["Finish"] = pd.to_datetime(df["Finish"], errors="coerce")
+    df["Team"] = df["Team"].astype(str).str.strip().replace({"": "Unassigned"})
+    # cast task column to first four characters to avoid long names
+    # df["Task"] = df["Task"].astype(str).str.slice(0, 20).str.strip().replace({"": "Untitled Task"})
+    df['TaskName'] = df['Task']
+    df["Task"] = "Task " + (df.index + 1).astype(str)
+
+    #print(df.to_string())
+    # Stable palette (explicit map avoids grayscale fallbacks)
+    palette = px.colors.qualitative.D3
+    teams = list(dict.fromkeys(df["Team"]))  # preserve order
+    color_map = {t: palette[i % len(palette)] for i, t in enumerate(teams)}
+
+    assert (df["Finish"] > df["Start"]).all()
+    df = df.reset_index(drop=True)
+    df["ypos"] = len(df) - 1 - df.index  # top-to-bottom
+
+    fig = go.Figure()
+    for team in teams:
+        sub = df[df["Team"] == team]
+        fig.add_trace(go.Scatter(
+            x=sum([[s, f, None] for s, f in zip(sub["Start"], sub["Finish"])], []),
+            y=sum([[y, y, None] for y in sub["ypos"]], []),
+            mode="lines",
+            line=dict(width=18, color=color_map[team]),
+            name=team,
+            hovertext=sub["Task"],
+            hoverinfo="text",
+        ))
+    
+    # --- dynamic sizing (no hard-coded height) ---
+    n_tasks = len(df)
+    row_h   = 26                         # px per task row
+    height  = max(360, min(140 + row_h*n_tasks, 1200))
+
+    duration_days = max(1, (df["Finish"].max() - df["Start"].min()).days)
+    ar = min(3.0, max(1.2, duration_days / max(n_tasks, 1)))  # aspect ~ time span / tasks
+    width = int(height * ar)
+
+    fig.update_yaxes(
+        tickvals=df["ypos"], ticktext=df["Task"],
+        autorange="reversed"
+    )
+    fig.update_xaxes(
+        type="date", 
+        range=[df["Start"].min(), df["Finish"].max()],
+        # dtick="D1",                 # one tick per day (or use 86400000)
+    # tickformat="%d %b %Y",      # e.g., 15 Aug 2025
+    # tickangle=-45,    
+    )
+    fig.update_layout(
+        title="Project Timeline", 
+        margin=dict(l=10, r=10, b=10, t=48), 
+        template="plotly_white",
+        height=height, width=width)
+
+    png_bytes = fig.to_image(format="png", scale=2)  # Kaleido
+    b64 = base64.b64encode(png_bytes).decode("ascii")
+    response = JsonResponse({"png": f"data:image/png;base64,{b64}"}) 
+
+    task_map = dict(zip(df["Task"], df["TaskName"]))
+    task_map_str = json.dumps(task_map, ensure_ascii=False)
+    response["X-Task-Map"] = task_map_str  # Pass task map for client-side use
+    
+    return response   
+
+
+def download_comm_plan_view(request, project_id):
+    """
+    Generates an AI-powered Communication Plan and returns it as a CSV file.
+    """
+    try:
+        project = Project.objects.prefetch_related(
+            'outcomes__benefits__deliverables'
+        ).get(pk=project_id)
+    except Project.DoesNotExist:
+        return HttpResponse("Project not found.", status=404)
+
+    # 1. Build the "Project Brief" string. This replaces the command-line wizard.
+    # We create a detailed text description of the project for the AI.
+    outcomes_str = ", ".join([o.description for o in project.outcomes.all()])
+    project_brief = (
+        f"Project Vision: {project.vision}. "
+        f"Desired Outcomes: {outcomes_str}. "
+        f"This project involves refining a project flow and generating detailed plans. "
+        f"Key stakeholders likely include project managers, team leads, and executive sponsors."
+    )
+
+    # 2. Call the AI to generate the plan, with a fallback.
+    try:
+        # Call the AI helper function with the brief
+        raw_comm_plan = documents_helper.generate_comm_plan(desc=project_brief)
+    except Exception as e:
+        print(f"AI call failed: {e}. Using default plan.")
+        raw_comm_plan = {} # Set to empty dict to trigger the normalizer's fallback
+
+    # 3. Normalize the AI output. This cleans the data and provides a default if needed.
+    comm_plan = documents_helper.normalize_comm_obj(raw_comm_plan, project.vision)
+    
+    # 4. Create the CSV response from the structured 'comm_plan' dictionary.
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="project_{project_id}_comm_plan.csv"'},
+    )
+
+    writer = csv.writer(response)
+    
+    # Use the keys from the first stakeholder dict as headers
+    stakeholders = comm_plan.get("Stakeholders", [])
+    if not stakeholders:
+        writer.writerow(["Note"])
+        writer.writerow(["No stakeholder information was generated."])
+        return response
+
+    headers = stakeholders[0].keys()
+    writer.writerow(headers)
+
+    # Write the stakeholder data rows
+    for stakeholder in stakeholders:
+        writer.writerow([stakeholder.get(h, "") for h in headers])
+
+    return response
+
+
+def download_financial_plan_view(request, project_id):
+    """
+    Generates an AI-powered Financial Plan and returns it as a CSV file.
+    """
+    try:
+        project = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        return HttpResponse("Project not found.", status=404)
+
+    # 1. Build the project brief string for the AI.
+    outcomes_str = ", ".join([o.description for o in project.outcomes.all()])
+    project_brief = (
+        f"Project Vision: {project.vision}. "
+        f"Desired Outcomes: {outcomes_str}. "
+        f"This project requires a detailed financial plan."
+    )
+
+    # 2. Call the AI to generate the full financial plan object.
+    try:
+        financial_plan_obj = documents_helper.generate_financial_plan(desc=project_brief)
+    except Exception as e:
+        return HttpResponse(f"Failed to generate financial plan from AI: {e}", status=500)
+
+    # 3. Create the CSV response.
+    response = HttpResponse(
+        content_type='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="project_{project_id}_financial_plan.csv"'},
+    )
+    writer = csv.writer(response)
+
+    # 4. Use `_rows_from_any` to format and write each section to the CSV.
+    for section_title, section_data in financial_plan_obj.items():
+        writer.writerow([f"--- {section_title.upper()} ---"]) # Section header
+
+        rows = documents_helper._rows_from_any(section_data)
+        if rows:
+            for row in rows:
+                writer.writerow(row)
+        else:
+            writer.writerow(["No data for this section."])
+            
+        writer.writerow([]) # Add a blank line for spacing
+
+    return response
+

@@ -90,76 +90,6 @@ def generate_flow_from_vision(vision_text, sample_project, teams_data) -> dict:
     #print("LLM response: ", parse_llm_response(response))
     return parse_llm_response(response)
 
-
-# def update_flow_with_llm(payload):
-#     """
-#     Takes the current project flow and the name of the field the user just edited,
-#     and returns a fully reconciled, logically consistent project flow.
-#     """
-#     edited_field = payload['edited_field']
-#     user_edit = payload['user_edit']
-#     current_values = payload['current_flow']
-#     similar_projects = payload.get('similar_projects', '[]')
-#     similar_teams = payload.get('similar_teams', '[]')
-
-#     print(f"Updating flow with edited field: {edited_field}")
-#     print(f"User edit: {user_edit}")
-#     print(f"Current values: {current_values}")
-    
-#     # --- CORRECTED PROMPT ---
-#     # This prompt now correctly describes the required NESTED structure.
-#     system_prompt = (
-#         f"""
-#         You are an expert project management assistant. A user has just edited one part of a project plan ('{edited_field}'), and your critical task is to update the rest of the plan to ensure it remains logically coherent.
-        
-#         The primary source of truth is the user's recent edit. Revise the OTHER fields to align with this change, maintaining the logical hierarchy: Vision -> Outcomes -> Benefits -> Deliverables -> Tasks.
-        
-#         Return ONLY a single, valid JSON object with the following nested structure:
-#         - "title": A concise and descriptive name for the project.
-#         - "outcomes": An array of objects.
-#         - Each object in "outcomes" must have:
-#             - "description": A string describing the desired final result.
-#             - "benefits": An array of objects.
-#         - Each object in "benefits" must have:
-#             - "description": A string describing the value or advantage.
-#             - "deliverables": An array of objects.
-#         - Each object in "deliverables" must have:
-#             - "description": A string describing the tangible output.
-#             - "tasks": An array of objects.
-#         - Each object in "tasks" must have:
-#             - "name": A clear and concise name for the task.
-#             - "responsible_team": The most appropriate team to handle this task.
-#             - "duration": An estimated integer number of days required to complete the task.
-#         """
-#     )
-
-#     user_prompt = (
-#         f"Here is a structured sample project you can use as an example of format: {similar_projects}\n\n"
-#         f"The field the user just edited is: \"{edited_field}\"."
-#         f"Here is the entire project plan immediately after the user's edit: {current_values}\n\n"
-#         f"A user has just edited one part of a project plan, and your critical task is to update the rest of the plan to ensure it remains logically coherent. You can add new items, modify existing ones, or remove items as necessary to ensure the entire project plan is logically consistent and coherent.\n\n"
-#     )
-
-#     response = client.chat.completions.create(
-#         model="gpt-4o-2024-08-06",
-#         messages=[
-#             {"role": "system", "content": system_prompt},
-#             {"role": "user", "content": user_prompt}
-#         ],
-#         response_format={"type": "json_object"}
-#     )
-    
-#     data_dict = parse_llm_response(response)
-#     if not data_dict:
-#         return {} 
-
-#     try:
-#         validated_flow = ProjectFlow.model_validate(data_dict)
-#         return validated_flow.model_dump(mode='json')
-#     except ValidationError as e:
-#         print(f"--- Pydantic Validation Error in update_flow_with_llm: {e} ---")
-#         return {}
-
 def update_flow_with_llm(payload):
     """
     Takes the current project flow and the name of the field the user just edited,
@@ -172,7 +102,7 @@ def update_flow_with_llm(payload):
     similar_teams = payload.get('similar_teams', '[]')
 
     #print(f"Updating flow with edited field: {edited_field}")
-    print(f"User edit: {user_edit}")
+    #print(f"User edit: {user_edit}")
     #print(f"Current values: {current_values}")
 
     # --- ENHANCED PROMPT ---

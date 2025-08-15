@@ -10,6 +10,9 @@ urlpatterns = [
 
     path('project/<int:project_id>/update-flow-ajax/', views.update_flow_ajax, name='update_flow_ajax'),
 
-    # The final page with the gantt chart, it also needs a project_id
-    path('gantt/<int:project_id>/', views.gantt_chart, name='gantt_chart')
+    path('project/<int:project_id>/download-comm-plan/', views.download_comm_plan_view, name='download_comm_plan_ajax'),
+
+    path('project/<int:project_id>/download-financial-plan/', views.download_financial_plan_view, name='download_financial_plan_ajax'),
+
+    path('project/<int:project_id>/gantt-data/', views.gantt_chart_data, name='gantt_chart_data')
 ]

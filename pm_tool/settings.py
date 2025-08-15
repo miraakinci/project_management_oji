@@ -123,4 +123,5 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 CHROMA_DB = str(BASE_DIR / "chroma_data")

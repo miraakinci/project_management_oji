@@ -3,6 +3,15 @@
 
 {% block content %}
 <style>
+
+    #process-model-container {
+        width: 100%;
+        height: 600px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #fdfdfd;
+    }
+
     body {
         background-color: #f8f9fa; /* A light background for the whole page */
     }
@@ -59,8 +68,7 @@
         overflow-y: visible;
         min-height: 200px;
     }
-    
-    /* ADDED: Add some spacing between wrapped items in Benefits/Deliverables */
+
     .flow-card [data-id] {
         border: 1px dashed #ddd;
         padding: 0.5rem;
@@ -99,17 +107,17 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white background */
-        z-index: 1050; /* High z-index to be on top */
-        display: none; /* Hidden by default */
+        background-color: rgba(255, 255, 255, 0.85);
+        z-index: 1050;
+        display: none;
         justify-content: center;
         align-items: center;
         flex-direction: column;
     }
 
     .spinner {
-        border: 8px solid #e9ecef; /* Light grey */
-        border-top: 8px solid #007bff; /* Primary blue */
+        border: 8px solid #e9ecef;
+        border-top: 8px solid #007bff;
         border-radius: 50%;
         width: 60px;
         height: 60px;
@@ -205,8 +213,13 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="comms-tab" data-bs-toggle="tab" data-bs-target="#comms" type="button" role="tab" aria-controls="comms" aria-selected="false">Communication Channels</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="fp-tab" data-bs-toggle="tab" data-bs-target="#fp" type="button" role="tab" aria-controls="fp" aria-selected="false">Financial Plan</button>
+            </li>
         </ul>
+
         <div class="tab-content" id="myTabContent">
+
             <div class="tab-pane fade show active" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
                 <table class="table table-striped table-hover">
                     <thead class="thead-dark">
@@ -242,17 +255,35 @@
                         {% endwith %}
                     </tbody>
                 </table>
+              
+                   
+                    
+                
             </div>
+
             <div class="tab-pane fade" id="gantt" role="tabpanel" aria-labelledby="gantt-tab">
-                <div class="placeholder-content">
-                    <p>The Gantt Chart will be generated here once tasks are created.</p>
+                <div id="gantt-chart-container"></div>
+                <div id="gantt-loading" class="placeholder-content">
+                    <p>Loading Gantt Chart...</p>
+                </div>
+                  <!-- task map for mapping names of tasks to numbers -->
+                <div id="tasks-map">
+
                 </div>
             </div>
+
             <div class="tab-pane fade" id="comms" role="tabpanel" aria-labelledby="comms-tab">
                  <div class="placeholder-content">
                     <p>A summary of communication channels will be displayed here.</p>
                 </div>
             </div>
+
+            <div class="tab-pane fade" id="fp" role="tabpanel" aria-labelledby="fp-tab">
+                <div class="placeholder-content">
+                    <p>A summary of the financial plan will be displayed here.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -261,10 +292,8 @@
     <div class="spinner"></div>
     <p>Processing changes...</p>
 </div>
-
 <script>
 const csrftoken = (() => {
-  // Function to get the CSRF token from cookies
   let v = null;
   document.cookie.split(';').forEach(c => {
     c = c.trim();
@@ -273,114 +302,233 @@ const csrftoken = (() => {
   return v;
 })();
 
-async function sendUpdate(field, payload) {
-  // Show the loading overlay before sending the request
-  document.getElementById('loading-overlay').style.display = 'flex';
+document.addEventListener('DOMContentLoaded', async () => {
+  const ganttTabBtn     = document.getElementById('gantt-tab');
+  const ganttContainer  = document.getElementById('gantt-chart-container');
+  const loadingMessage  = document.getElementById('gantt-loading');
+// console.log('Gantt tab button:', ganttTabBtn);
+// console.log('Gantt container:', ganttContainer);
 
-  try {
-    const body = { edited_field: field, payload: payload, source_of_change: 'user' };
-    const resp = await fetch("{% url 'update_flow_ajax' project_id=project.id %}", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify(body)
-    });
+  async function renderGanttChart() {
+    const ganttTabBtn     = document.getElementById('gantt-tab');
+    const ganttContainer  = document.getElementById('gantt-chart-container');
+    // ganttContainer.style.backgroundColor = '#f8f9fa';
+    const loadingMessage  = document.getElementById('gantt-loading');
+    const taskMapDiv = document.getElementById('tasks-map');
+    // console.log('Task Map Div:', taskMapDiv);
+    let taskMap = {};
+    //console.log('Rendering Gantt chart...');
+    loadingMessage.style.display = 'block';
+    // ganttContainer.innerHTML = '';
 
-    // Check if the server responded with an error status
-    if (!resp.ok) {
-        throw new Error(`Server responded with status: ${resp.status}`);
+    try {
+      const resp = await fetch("{% url 'gantt_chart_data' project_id=project.id %}");
+      if (!resp.ok) throw new Error(resp.statusText);
+      const data = await resp.json();
+      taskMap = JSON.parse(resp.headers.get('X-Task-Map') || '{}');
+      taskMapDiv.innerHTML = ''; // Clear previous content
+      if (Object.keys(taskMap).length > 0) {
+        //console.log('Mapping tasks:', taskMap );
+        const mapList = document.createElement('ul');
+        for (const [task, name] of Object.entries(taskMap)) {
+          const listItem = document.createElement('li');
+          listItem.textContent = `${task}: ${name}`;
+          mapList.appendChild(listItem);
+        }
+        taskMapDiv.appendChild(mapList);
+      } else {
+        taskMapDiv.innerHTML = '<p>No tasks available.</p>';
+      }
+
+
+      loadingMessage.style.display = 'none';
+      if (data.png) {
+        // check if the image is already present
+        if (document.getElementById('gc')) {
+          const existingImg = document.getElementById('gc');
+          existingImg.src = data.png; // update the src to refresh the image
+        } else {
+            const img = document.createElement('img');
+            img.id = 'gc';
+            img.src = data.png;
+            img.alt = 'Gantt Chart';
+            img.style.maxWidth = '100%';
+            img.style.height = 'auto';
+            ganttContainer.appendChild(img);
+        }
+        
+      } else {
+        ganttContainer.innerHTML = `<div class="placeholder-content"><p>${data.message || 'No data.'}</p></div>`;
+      }
+    } catch (e) {
+      //console.log('failed to load Gantt chart:', e);
+      loadingMessage.style.display = 'none';
+      ganttContainer.innerHTML = '<p>Error loading the chart.</p>';
+      console.error(e);
     }
+  }
 
-    const result = await resp.json();
-    if (result.status === 'success') {
-      // Reload after successful edit. The overlay will disappear on page reload.
-      window.location.reload();
-    } else {
-      // Handle application-level errors (e.g., validation failure)
-      console.error('Update failed:', result);
-      // Hide the overlay and show an error message
+  // Render when the Gantt tab becomes visible (if Bootstrap JS is present)…
+  ganttTabBtn.addEventListener('shown.bs.tab', async () => await renderGanttChart());
+  // …and also on plain clicks as a fallback
+  ganttTabBtn.addEventListener('click', async  () => await renderGanttChart());
+
+  async function downloadCommPlan(button) {
+    const originalText = button.textContent;
+    button.textContent = 'Preparing...';
+    button.disabled = true;
+    try {
+      const response = await fetch("{% url 'download_comm_plan_ajax' project_id=project.id %}", {
+        method: 'GET',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+      if (!response.ok) throw new Error(response.statusText);
+
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = 'communications-plan.csv';
+      if (disposition && disposition.includes('attachment')) {
+        const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        if (m && m[1]) filename = m[1].replace(/['"]/g, '');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert('Could not download the file. Please check the console for errors.');
+    } finally {
+      button.textContent = originalText;
+      button.disabled = false;
+    }
+  }
+
+  async function downloadFinancialPlan(button) {
+    const originalText = button.textContent;
+    button.textContent = 'Preparing...';
+    button.disabled = true;
+    try {
+      const response = await fetch("{% url 'download_financial_plan_ajax' project_id=project.id %}", {
+        method: 'GET',
+        headers: { 'X-CSRFToken': csrftoken }
+      });
+      if (!response.ok) throw new Error(response.statusText);
+
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = 'financial-plan.csv';
+      if (disposition && disposition.includes('attachment')) {
+        const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        if (m && m[1]) filename = m[1].replace(/['"]/g, '');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert('Could not download the file. Please check the console for errors.');
+    } finally {
+      button.textContent = originalText;
+      button.disabled = false;
+    }
+  }
+
+  async function sendUpdate(field, payload) {
+    try {
+      const body = { edited_field: field, payload: payload, source_of_change: 'user' };
+      const resp = await fetch("{% url 'update_flow_ajax' project_id=project.id %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify(body)
+      });
+      if (!resp.ok) throw new Error(`Server responded with status: ${resp.status}`);
+
+      const result = await resp.json();
+      if (result.status === 'success') {
+        window.location.reload();
+      } else {
+        console.error('Update failed:', result);
+        document.getElementById('loading-overlay').style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Error during fetch:', error);
       document.getElementById('loading-overlay').style.display = 'none';
     }
-  } catch (error) {
-    // Handle network errors or other exceptions during the fetch
-    console.error('Error during fetch:', error);
-    // Hide the overlay and show an error message
-    document.getElementById('loading-overlay').style.display = 'none';
   }
-}
 
-function collectPayload(field, item) {
+  function collectPayload(field, item) {
     if (field === 'vision') {
-        return { vision: item.innerText.trim() };
-    } else {
-        const payload = {
-            id: item.closest('[data-id]').getAttribute('data-id'),
-            description: item.innerText.trim()
-        };
-        return payload;
+      return { vision: item.innerText.trim() };
     }
-}
-
-// Use event delegation to handle clicks on the entire document
-document.addEventListener('click', e => {
-  // Case 1: An "Edit" button was clicked
-  if (e.target.matches('.edit-btn')) {
-    const item = e.target.closest('[data-id]') || e.target.closest('.flow-card');
-    const editable = item.querySelector('[contenteditable]');
-    if (editable) {
-        editable.setAttribute('contenteditable', 'true');
-        editable.focus(); // Focus the element for immediate editing
-    }
-    e.target.style.display = 'none'; // Hide the edit button
-    const doneBtn = item.querySelector('.done-btn');
-    if (doneBtn) doneBtn.style.display = 'inline-block'; // Show the done button
-    return;
+    return {
+      id: item.closest('[data-id]').getAttribute('data-id'),
+      description: item.innerText.trim()
+    };
   }
 
-  // Case 2: A "Done" button was clicked
-  if (e.target.matches('.done-btn')) {
-    const doneBtn = e.target;
-    const item = doneBtn.closest('[data-id]') || doneBtn.closest('.flow-card');
+  // Delegated clicks for edit/done + downloads
+  document.addEventListener('click', e => {
+    if (e.target.matches('.edit-btn')) {
+      const item = e.target.closest('[data-id]') || e.target.closest('.flow-card');
+      const editable = item.querySelector('[contenteditable]');
+      if (editable) { editable.setAttribute('contenteditable', 'true'); editable.focus(); }
+      e.target.style.display = 'none';
+      const doneBtn = item.querySelector('.done-btn');
+      if (doneBtn) doneBtn.style.display = 'inline-block';
+      return;
+    }
 
-    // Determine which field is being edited
-    let field = item.getAttribute('data-name');
-    if (!field) { // This handles cases like outcomes/benefits where data-name is on a parent container
+    if (e.target.matches('#comms-tab')) {
+      downloadCommPlan(e.target);
+      return;
+    }
+
+    if (e.target.matches('#fp-tab')) {
+      downloadFinancialPlan(e.target);
+      return;
+    }
+
+    if (e.target.matches('.done-btn')) {
+      const doneBtn = e.target;
+      const item = doneBtn.closest('[data-id]') || doneBtn.closest('.flow-card');
+
+      let field = item.getAttribute('data-name');
+      if (!field) {
         const parentCard = item.closest('.flow-card');
         if (parentCard) {
-            const dataNameElement = parentCard.querySelector('[data-name]');
-            if (dataNameElement) {
-                field = dataNameElement.getAttribute('data-name');
-            }
+          const dataNameElement = parentCard.querySelector('[data-name]');
+          if (dataNameElement) field = dataNameElement.getAttribute('data-name');
         }
+      }
+
+      const editable = item.querySelector('[contenteditable]');
+      if (editable) editable.setAttribute('contenteditable', 'false');
+
+      const editBtn = item.querySelector('.edit-btn');
+      if (editBtn) editBtn.style.display = 'inline-block';
+      doneBtn.style.display = 'none';
+
+      const payload = collectPayload(field, editable);
+      sendUpdate(field, payload);
+      return;
     }
-    
-    // Make the element non-editable again
-    const editable = item.querySelector('[contenteditable]');
-    if (editable) editable.setAttribute('contenteditable', 'false');
-
-    // Swap the "Done" button back to an "Edit" button
-    const editBtn = item.querySelector('.edit-btn');
-    if (editBtn) editBtn.style.display = 'inline-block';
-    doneBtn.style.display = 'none';
-
-    // Collect the data and send the update
-    const payload = collectPayload(field, editable);
-    sendUpdate(field, payload);
-    return;
-  }
-
-  // Case 3: A "Delete" button was clicked (for outcomes)
-  if (e.target.matches('.delete-btn')) {
-    const outcomeItem = e.target.closest('.outcome-item');
-    if (outcomeItem) {
-      outcomeItem.remove(); // Remove the item from the DOM
-      const payload = collectPayload('outcomes'); // Recalculate the outcomes
-      sendUpdate('outcomes', payload); // Send the update to the server
-    }
-  }
+  });
 });
 </script>
+
 
 {% endblock %}
