@@ -93,7 +93,13 @@ class Command(BaseCommand):
         # 3. Process each team
         ids_to_add = [team['id'] for team in teams]
         documents_to_add = [team['document'] for team in teams]
-        metadatas_to_add = [{"team_name": team['team_name']} for team in teams]
+        metadatas_to_add = [
+        {
+            "team_name": team['team_name'],
+            "responsibilities_json": json.dumps(team['responsibilities'])  # serialize list
+        }
+        for team in teams
+    ]
 
         if not ids_to_add:
             self.stdout.write(self.style.WARNING("No teams found to load."))
