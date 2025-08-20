@@ -8,11 +8,9 @@ urlpatterns = [
     # The page to edit the project flow, it needs a project_id
     path('project/<int:project_id>/', views.get_project_flow, name='project_flow'),
 
-    path('project/<int:project_id>/update-flow-ajax/', views.update_flow_ajax, name='update_flow_ajax'),
+    path('project/<int:project_id>/update-flow/', views.update_flow_ajax, name='update_flow_ajax'),
 
-    path('project/<int:project_id>/download-comm-plan/', views.download_comm_plan_view, name='download_comm_plan_ajax'),
-
-    path('project/<int:project_id>/download-financial-plan/', views.download_financial_plan_view, name='download_financial_plan_ajax'),
-
+    path('project/<int:project_id>/download-comm-plan.docx/', views.download_comm_plan_docx, name='download_comm_plan_docx'),
+    path('project/<int:project_id>/download-financial-plan.docx/', views.download_financial_plan_docx, name='download_financial_plan_docx'),
     path('project/<int:project_id>/gantt-data/', views.gantt_chart_data, name='gantt_chart_data')
 ]

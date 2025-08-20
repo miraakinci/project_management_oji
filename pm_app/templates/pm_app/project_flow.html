@@ -3,7 +3,6 @@
 
 {% block content %}
 <style>
-
     #process-model-container {
         width: 100%;
         height: 600px;
@@ -255,10 +254,6 @@
                         {% endwith %}
                     </tbody>
                 </table>
-              
-                   
-                    
-                
             </div>
 
             <div class="tab-pane fade" id="gantt" role="tabpanel" aria-labelledby="gantt-tab">
@@ -266,10 +261,8 @@
                 <div id="gantt-loading" class="placeholder-content">
                     <p>Loading Gantt Chart...</p>
                 </div>
-                  <!-- task map for mapping names of tasks to numbers -->
-                <div id="tasks-map">
-
-                </div>
+                <!-- task map for mapping names of tasks to numbers -->
+                <div id="tasks-map"></div>
             </div>
 
             <div class="tab-pane fade" id="comms" role="tabpanel" aria-labelledby="comms-tab">
@@ -292,6 +285,7 @@
     <div class="spinner"></div>
     <p>Processing changes...</p>
 </div>
+
 <script>
 const csrftoken = (() => {
   let v = null;
@@ -303,32 +297,23 @@ const csrftoken = (() => {
 })();
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const ganttTabBtn     = document.getElementById('gantt-tab');
-  const ganttContainer  = document.getElementById('gantt-chart-container');
-  const loadingMessage  = document.getElementById('gantt-loading');
-// console.log('Gantt tab button:', ganttTabBtn);
-// console.log('Gantt container:', ganttContainer);
+  const ganttTabBtn    = document.getElementById('gantt-tab');
+  const ganttContainer = document.getElementById('gantt-chart-container');
+  const loadingMessage = document.getElementById('gantt-loading');
 
   async function renderGanttChart() {
-    const ganttTabBtn     = document.getElementById('gantt-tab');
-    const ganttContainer  = document.getElementById('gantt-chart-container');
-    // ganttContainer.style.backgroundColor = '#f8f9fa';
-    const loadingMessage  = document.getElementById('gantt-loading');
     const taskMapDiv = document.getElementById('tasks-map');
-    // console.log('Task Map Div:', taskMapDiv);
-    let taskMap = {};
-    //console.log('Rendering Gantt chart...');
     loadingMessage.style.display = 'block';
-    // ganttContainer.innerHTML = '';
 
     try {
       const resp = await fetch("{% url 'gantt_chart_data' project_id=project.id %}");
       if (!resp.ok) throw new Error(resp.statusText);
+
       const data = await resp.json();
-      taskMap = JSON.parse(resp.headers.get('X-Task-Map') || '{}');
-      taskMapDiv.innerHTML = ''; // Clear previous content
+      const taskMap = JSON.parse(resp.headers.get('X-Task-Map') || '{}');
+
+      taskMapDiv.innerHTML = '';
       if (Object.keys(taskMap).length > 0) {
-        //console.log('Mapping tasks:', taskMap );
         const mapList = document.createElement('ul');
         for (const [task, name] of Object.entries(taskMap)) {
           const listItem = document.createElement('li');
@@ -340,52 +325,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         taskMapDiv.innerHTML = '<p>No tasks available.</p>';
       }
 
-
       loadingMessage.style.display = 'none';
       if (data.png) {
-        // check if the image is already present
-        if (document.getElementById('gc')) {
-          const existingImg = document.getElementById('gc');
-          existingImg.src = data.png; // update the src to refresh the image
+        const existingImg = document.getElementById('gc');
+        if (existingImg) {
+          existingImg.src = data.png;
         } else {
-            const img = document.createElement('img');
-            img.id = 'gc';
-            img.src = data.png;
-            img.alt = 'Gantt Chart';
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            ganttContainer.appendChild(img);
+          const img = document.createElement('img');
+          img.id = 'gc';
+          img.src = data.png;  // PNG or SVG data URL
+          img.alt = 'Gantt Chart';
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          ganttContainer.appendChild(img);
         }
-        
       } else {
         ganttContainer.innerHTML = `<div class="placeholder-content"><p>${data.message || 'No data.'}</p></div>`;
       }
     } catch (e) {
-      //console.log('failed to load Gantt chart:', e);
       loadingMessage.style.display = 'none';
       ganttContainer.innerHTML = '<p>Error loading the chart.</p>';
       console.error(e);
     }
   }
 
-  // Render when the Gantt tab becomes visible (if Bootstrap JS is present)…
-  ganttTabBtn.addEventListener('shown.bs.tab', async () => await renderGanttChart());
-  // …and also on plain clicks as a fallback
-  ganttTabBtn.addEventListener('click', async  () => await renderGanttChart());
+  // Render when the Gantt tab becomes visible (Bootstrap) and also on click
+  ganttTabBtn.addEventListener('shown.bs.tab', renderGanttChart);
+  ganttTabBtn.addEventListener('click', renderGanttChart);
 
-  async function downloadCommPlan(button) {
-    const originalText = button.textContent;
-    button.textContent = 'Preparing...';
-    button.disabled = true;
+  // --- DOCX downloaders (CSV removed) ---
+  async function downloadCommPlanDocx(triggerEl) {
+    const originalText = triggerEl.textContent;
+    triggerEl.textContent = 'Preparing...';
+    triggerEl.disabled = true;
     try {
-      const response = await fetch("{% url 'download_comm_plan_ajax' project_id=project.id %}", {
+      const response = await fetch("{% url 'download_comm_plan_docx' project_id=project.id %}", {
         method: 'GET',
         headers: { 'X-CSRFToken': csrftoken }
       });
       if (!response.ok) throw new Error(response.statusText);
 
       const disposition = response.headers.get('Content-Disposition');
-      let filename = 'communications-plan.csv';
+      let filename = 'communication-plan.docx';
       if (disposition && disposition.includes('attachment')) {
         const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
         if (m && m[1]) filename = m[1].replace(/['"]/g, '');
@@ -403,26 +384,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Could not download the file. Please check the console for errors.');
+      alert('Could not download the Communication Plan (DOCX).');
     } finally {
-      button.textContent = originalText;
-      button.disabled = false;
+      triggerEl.textContent = originalText;
+      triggerEl.disabled = false;
     }
   }
 
-  async function downloadFinancialPlan(button) {
-    const originalText = button.textContent;
-    button.textContent = 'Preparing...';
-    button.disabled = true;
+  async function downloadFinancialPlanDocx(triggerEl) {
+    const originalText = triggerEl.textContent;
+    triggerEl.textContent = 'Preparing...';
+    triggerEl.disabled = true;
     try {
-      const response = await fetch("{% url 'download_financial_plan_ajax' project_id=project.id %}", {
+      const response = await fetch("{% url 'download_financial_plan_docx' project_id=project.id %}", {
         method: 'GET',
         headers: { 'X-CSRFToken': csrftoken }
       });
       if (!response.ok) throw new Error(response.statusText);
 
       const disposition = response.headers.get('Content-Disposition');
-      let filename = 'financial-plan.csv';
+      let filename = 'financial-plan.docx';
       if (disposition && disposition.includes('attachment')) {
         const m = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
         if (m && m[1]) filename = m[1].replace(/['"]/g, '');
@@ -440,10 +421,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Could not download the file. Please check the console for errors.');
+      alert('Could not download the Financial Plan (DOCX).');
     } finally {
-      button.textContent = originalText;
-      button.disabled = false;
+      triggerEl.textContent = originalText;
+      triggerEl.disabled = false;
     }
   }
 
@@ -480,30 +461,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  // Delegated clicks for edit/done + downloads
+  // Delegated clicks for edit/done + DOCX on tab click
   document.addEventListener('click', e => {
-    if (e.target.matches('.edit-btn')) {
-      const item = e.target.closest('[data-id]') || e.target.closest('.flow-card');
+    if (e.target.closest('.edit-btn')) {
+      const btn  = e.target.closest('.edit-btn');
+      const item = btn.closest('[data-id]') || btn.closest('.flow-card');
       const editable = item.querySelector('[contenteditable]');
       if (editable) { editable.setAttribute('contenteditable', 'true'); editable.focus(); }
-      e.target.style.display = 'none';
+      btn.style.display = 'none';
       const doneBtn = item.querySelector('.done-btn');
       if (doneBtn) doneBtn.style.display = 'inline-block';
       return;
     }
 
-    if (e.target.matches('#comms-tab')) {
-      downloadCommPlan(e.target);
+    // Trigger DOCX downloads when tabs are clicked (including their child elements)
+    if (e.target.closest('#comms-tab')) {
+      downloadCommPlanDocx(e.target.closest('#comms-tab'));
+      return;
+    }
+    if (e.target.closest('#fp-tab')) {
+      downloadFinancialPlanDocx(e.target.closest('#fp-tab'));
       return;
     }
 
-    if (e.target.matches('#fp-tab')) {
-      downloadFinancialPlan(e.target);
-      return;
-    }
-
-    if (e.target.matches('.done-btn')) {
-      const doneBtn = e.target;
+    if (e.target.closest('.done-btn')) {
+      const doneBtn = e.target.closest('.done-btn');
       const item = doneBtn.closest('[data-id]') || doneBtn.closest('.flow-card');
 
       let field = item.getAttribute('data-name');
@@ -529,6 +511,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 </script>
-
-
 {% endblock %}

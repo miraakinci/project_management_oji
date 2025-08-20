@@ -4,6 +4,17 @@ from django.conf import settings
 from dotenv import load_dotenv
 import os
 from openai import OpenAI, AuthenticationError, RateLimitError, APIConnectionError
+from .models import Project, Outcome, Benefit, Deliverable, Task
+from docx import Document
+import re as _re2
+from django.http import JsonResponse
+from docx.shared import Pt
+from datetime import date, timedelta as _timedelta, datetime as _dt
+
+
+
+BUDGET_RE = _re2.compile(r'(?P<currency>[$£€])\s?(?P<amount>[\d,]+(?:\.\d+)?)', _re2.I)
+YEAR_RE = _re2.compile(r'\b(20[2-9]\d|203\d)\b')
 
 load_dotenv() 
 
@@ -50,7 +61,7 @@ def chat_call(messages, temperature=0.3) -> str:
 def generate_comm_plan(desc: str) -> dict:
     system = f"""
     You are a senior project communications consultant.
-    Create a Communication Plan JSON for the project described below.
+    Create a Communication Plan JSON for the project described below.   
     <desc>{desc}</desc>
 
     Return ONLY a JSON object with this exact structure:
@@ -156,6 +167,7 @@ def generate_financial_plan(desc: str) -> dict:
     """
     raw_response = chat_call([{"role":"system", "content":system}], 0.3)
     return _coerce_obj(raw_response)
+
 def _rows_from_any(data):
     """Normalize various JSON shapes to a list of lists for a table."""
     if data is None or data == "":
@@ -186,4 +198,207 @@ def _rows_from_any(data):
         return [["Field", "Value"]] + [[k, v] for k, v in data.items()]
         
     return None
+
+
+
+#new updates 
+def _parse_budget_year(txt: str):
+    txt = (txt or "")
+    m = BUDGET_RE.search(txt)
+    budget = m.group(0) if m else ""
+    y = YEAR_RE.search(txt)
+    year = y.group(0) if y else ""
+    return budget, year
+
+
+def _project_facts(project_id: int) -> dict:
+    try:
+        p = Project.objects.get(pk=project_id)
+    except Project.DoesNotExist:
+        return {"Project Name": f"Project {project_id}",
+                "Project Manager": "Project Manager", "Executive Sponsor": "Executive Sponsor",
+                "Start Date": "", "End Date": "", "Total Budget": "", "Target Year": "",
+                "Board Cadence": "Fortnightly", "Highlight Frequency": "Weekly",
+                "Regulators": "", "Suppliers": [], "Objectives": [], "Deliverables": []}
+    objectives = [o.description for o in p.outcomes.all()]
+    deliverables = []
+    for o in p.outcomes.all():
+        for b in o.benefits.all():
+            for d in b.deliverables.all():
+                if d.description:
+                    deliverables.append(d.description)
+    b_from_vision, y_from_vision = _parse_budget_year(getattr(p, "vision", "") or "")
+    return {
+        "Project Name": getattr(p, "name", f"Project {project_id}"),
+        "Project Manager": getattr(p, "project_manager", "Project Manager"),
+        "Executive Sponsor": getattr(p, "sponsor", "Executive Sponsor"),
+        "Start Date": getattr(p, "start_date", "") or "",
+        "End Date": getattr(p, "end_date", "") or "",
+        "Total Budget": getattr(p, "total_budget", "") or b_from_vision,
+        "Target Year": getattr(p, "target_year", "") or y_from_vision,
+        "Board Cadence": getattr(p, "board_cadence", "Fortnightly"),
+        "Highlight Frequency": getattr(p, "highlight_frequency", "Weekly"),
+        "Regulators": getattr(p, "regulators", ""),
+        "Suppliers": getattr(p, "suppliers", []) or [],
+        "Objectives": objectives,
+        "Deliverables": deliverables,
+    }
+
+
+def build_project_desc(facts: dict) -> str:
+    parts = []
+    for k in ("Project Name", "Project Manager", "Executive Sponsor", "Total Budget",
+              "Start Date", "End Date", "Board Cadence", "Highlight Frequency", "Regulators"):
+        v = facts.get(k)
+        if v:
+            parts.append(f"{k}: {v}")
+    if facts.get("Objectives"):
+        parts.append("Objectives: " + ", ".join(facts["Objectives"]))
+    if facts.get("Deliverables"):
+        parts.append("Deliverables: " + ", ".join(facts["Deliverables"]))
+    if facts.get("Suppliers"):
+        parts.append("Suppliers: " + ", ".join(facts["Suppliers"]))
+    return " | ".join(parts)
+
+
+def _duration_to_days(s, default=7):
+    if not s:
+        return default
+    try:
+        num, unit = s.split()
+        num = int(num)
+        return num * 7 if 'week' in unit.lower() else num
+    except Exception:
+        return default
+
+
+
+def _docx_add_table(doc: Document, rows, header: bool = True):
+    if not rows:
+        return
+    cols = max(len(r) for r in rows)
+    table = doc.add_table(rows=1 if header else 0, cols=cols)
+    if header:
+        hdr = table.rows[0].cells
+        for i, val in enumerate(rows[0]):
+            run = hdr[i].paragraphs[0].add_run(str(val))
+            run.font.name = "Calibri"
+            run.font.size = Pt(10)
+            run.bold = True
+        data = rows[1:]
+    else:
+        data = rows
+    for r in data:
+        cells = table.add_row().cells
+        for i, val in enumerate(r):
+            run = cells[i].paragraphs[0].add_run("" if val is None else str(val))
+            run.font.name = "Calibri"
+            run.font.size = Pt(10)
+
+
+def _parse_money(s: str) -> float | None:
+    if not s:
+        return None
+    m = BUDGET_RE.search(str(s))
+    try:
+        return float(m.group("amount").replace(",", "")) if m else float(str(s).replace(",", "").replace("£", "").strip())
+    except Exception:
+        return None
+
+
+def _infer_dates_from_tasks(project: Project):
+    tasks = list(Task.objects.filter(deliverableID__benefitID__outcomeID__projectID=project))
+    starts = [t.start_date for t in tasks if t.start_date]
+    ends = [t.end_date for t in tasks if t.end_date]
+    if starts and ends:
+        return min(starts), max(ends)
+    s = date.today()
+    return s, s + timedelta(days=240)
+
+
+def _normalize_stages_for_doc(stages_data, project: Project):
+    """Return rows for the Stages table (with default objectives if missing)."""
+
+    def _parse_date_any(x):
+        if isinstance(x, (date, _dt)):
+            return x.date() if isinstance(x, _dt) else x
+        if not x:
+            return date.today()
+        s = str(x).strip()
+        for fmt in ("%Y-%m-%d", "%d-%b-%Y", "%d-%B-%Y", "%d/%m/%Y", "%Y/%m/%d"):
+            try:
+                return _dt.strptime(s, fmt).date()
+            except Exception:
+                pass
+        try:
+            return _dt.fromisoformat(s.replace("Z", "")).date()
+        except Exception:
+            return date.today()
+
+    # Helpful defaults we’ll apply when objectives are missing
+    default_objectives_by_index = [
+        "Approve business case, define success criteria, and secure funding.",
+        "Baseline scope, schedule, budget; identify risks; finalize resources.",
+        "Execute work packages, test increments, and manage changes/risks.",
+        "Handover & training, benefits tracking setup, and project closeout."
+    ]
+
+    def _fallback_rows():
+        names = ["Initiation", "Planning", "Execution", "Closure"]
+        s, e = _infer_dates_from_tasks(project)
+        total = max(1, (e - s).days)
+        cuts = [s,
+                s + timedelta(days=int(total * .10)),
+                s + timedelta(days=int(total * .35)),
+                s + timedelta(days=int(total * .90)),
+                e]
+        rows = []
+        for i, n in enumerate(names):
+            rows.append([
+                n,
+                cuts[i].strftime("%d-%b-%Y"),
+                cuts[i + 1].strftime("%d-%b-%Y"),
+                default_objectives_by_index[i] if i < len(default_objectives_by_index) else ""
+            ])
+        return rows
+
+    rows = []
+    if isinstance(stages_data, list) and stages_data:
+        for i, it in enumerate(stages_data):
+            n   = (it.get("name") or it.get("Name") or f"Stage {i+1}").strip()
+            sd  = _parse_date_any(it.get("start_date") or it.get("Start Date"))
+            ed  = _parse_date_any(it.get("end_date")   or it.get("End Date"))
+            objs = it.get("objectives") or it.get("Objectives") or it.get("objective") or ""
+            if isinstance(objs, list):
+                objs = ", ".join(o for o in objs if o)
+            if not objs:
+                # Apply a sensible default by position
+                objs = default_objectives_by_index[i] if i < len(default_objectives_by_index) else "Define tasks, deliverables, and acceptance criteria."
+            rows.append([n, sd.strftime("%d-%b-%Y"), ed.strftime("%d-%b-%Y"), objs])
+
+    if not rows:
+        rows = _fallback_rows()
+
+    return [["name", "start_date", "end_date", "objectives"]] + rows
+
+def _expenses_from_deliverables(project: Project):
+    cats = ["Market Research", "Product Development", "Digital Marketing", "Branding and Design",
+            "Website / Platform", "Staffing & Training", "Logistics & Distribution"]
+    ds = list(Deliverable.objects.filter(benefitID__outcomeID__projectID=project))
+    base_each = max(1, len(ds)) * 25000
+    return [(c, f"£{base_each:,.0f}")] * len(cats)
+
+
+def _monthly_cashflow(project: Project, total_cost_guess: float | None):
+    s, e = _infer_dates_from_tasks(project)
+    months, cur = [], date(s.year, s.month, 1)
+    while cur <= e:
+        months.append(cur)
+        cur = date(cur.year + (1 if cur.month == 12 else 0), 1 if cur.month == 12 else cur.month + 1, 1)
+    if total_cost_guess is None:
+        total_cost_guess = sum(_parse_money(v) or 0 for _, v in _expenses_from_deliverables(project)) or 1_000_000
+    monthly = total_cost_guess / max(1, len(months))
+    return months, monthly, total_cost_guess
+
+
 
