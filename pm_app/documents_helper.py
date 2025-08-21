@@ -9,7 +9,7 @@ from docx import Document
 import re as _re2
 from django.http import JsonResponse
 from docx.shared import Pt
-from datetime import date, timedelta as _timedelta, datetime as _dt
+from datetime import date, timedelta as td, datetime as _dt
 
 
 
@@ -313,7 +313,7 @@ def _infer_dates_from_tasks(project: Project):
     if starts and ends:
         return min(starts), max(ends)
     s = date.today()
-    return s, s + timedelta(days=240)
+    return s, s + td(days=240)
 
 
 def _normalize_stages_for_doc(stages_data, project: Project):
@@ -348,9 +348,9 @@ def _normalize_stages_for_doc(stages_data, project: Project):
         s, e = _infer_dates_from_tasks(project)
         total = max(1, (e - s).days)
         cuts = [s,
-                s + timedelta(days=int(total * .10)),
-                s + timedelta(days=int(total * .35)),
-                s + timedelta(days=int(total * .90)),
+                s + td(days=int(total * .10)),
+                s + td(days=int(total * .35)),
+                s + td(days=int(total * .90)),
                 e]
         rows = []
         for i, n in enumerate(names):

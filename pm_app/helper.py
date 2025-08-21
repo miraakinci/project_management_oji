@@ -9,7 +9,6 @@ from pydantic import ValidationError
 def find_similar_projects(input_prompt):
 
     project_collection = get_or_create_collection("projects")
-    
 
     results = project_collection.query(
     query_texts=[input_prompt],
@@ -25,7 +24,7 @@ def find_similar_projects(input_prompt):
         "id": results['ids'][0][0],
         "title": project_metadata.get('title'),
         "document": results['documents'][0][0],
-        "outcomes": outcomes_data # <-- This is the extracted nested structure
+        "outcomes": outcomes_data 
     }
 
     return final_result
