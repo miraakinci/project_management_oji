@@ -1,0 +1,5 @@
+label,n,latency_mean,latency_p50,latency_p95,latency_max,tokens_in_mean,tokens_out_mean,cost_mean_gbp
+overall_no_outliers(≤10.69s),665,3.728,3.245,6.872,9.73,84.08,230.14,0.001368
+temp=0.0_no_outliers,93,3.291,3.095,5.233,7.955,82.39,222.63,0.001922
+temp=0.2_no_outliers,503,3.889,3.361,7.064,9.73,84.34,233.0,0.001192
+temp=0.7000000000000001_no_outliers,69,3.136,2.959,4.742,9.393,84.45,219.43,0.001901

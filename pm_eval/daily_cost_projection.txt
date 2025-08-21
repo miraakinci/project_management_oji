@@ -1,0 +1,4 @@
+Users/day = 50
+Calls per user/day = 5
+Average cost per call (GBP) = 0.001369
+Estimated daily cost (GBP) = 0.34

@@ -1,0 +1,5 @@
+ConcurrentUsers,TotalRequests,AvgLatency_s,P95Latency_s,FailureRate_%
+5,15,1.7495,3.4352,0
+10,30,2.7273,10.7386,0
+20,60,2.7524,9.9213,0
+50,150,2.1125,9.6576,0

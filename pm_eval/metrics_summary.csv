@@ -1,0 +1,13 @@
+label,latency_mean,latency_p50,latency_p95,latency_max,tokens_in_mean,tokens_out_mean,cost_mean_gbp
+overall,3.918,3.246,6.879,130.783,84.2,230.18,0.001369
+temp=0.0,3.291,3.095,5.233,7.955,82.39,222.63,0.001922
+temp=0.2,3.889,3.361,7.064,9.73,84.34,233,0.001192
+temp=0.7000000000000001,4.959,2.963,5.292,130.783,85.57,219.94,0.001907
+feature=vision2plan,4.007,3.48,7.376,9.73,84.14,234.12,0.001068
+feature=reliability:p1_normal,3.382,3.107,5.428,6.394,74,231.51,0.001975
+feature=reliability:p3_normal,2.92,2.823,4.272,6.456,76,216.2,0.001858
+feature=reliability:p2_normal,3.054,3.05,3.853,5.947,76,210.11,0.00181
+feature=reliability:p4_short,3.197,2.959,4.923,7.955,67,222.57,0.001891
+feature=reliability:p5_vague,2.793,2.667,3.837,4.686,69,192.24,0.001655
+feature=reliability:p6_long,8.092,3.59,6.448,130.783,163,288.17,0.002599
+feature=reliability:p7_conflict,3.344,3.022,4.562,9.393,74,204.03,0.001758

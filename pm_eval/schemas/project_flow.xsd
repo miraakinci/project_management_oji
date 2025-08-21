@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="Project">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Vision" type="xs:string"/>
+        <xs:element name="Outcomes">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Outcome" type="xs:string" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Benefits">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Benefit" type="xs:string" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Deliverables">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Deliverable" type="xs:string" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Tasks">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Task" type="xs:string" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

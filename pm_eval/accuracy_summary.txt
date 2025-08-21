@@ -1,0 +1,9 @@
+=== 8.5.1 Completeness ===
+Files: 4
+Complete: 4
+Completeness %: 100.0
+
+=== 8.5.2 Propagation ===
+Pairs: 2
+Passed: 2
+Pass %: 100.0
