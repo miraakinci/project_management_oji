@@ -39,7 +39,7 @@ Sign in or create an account at https://platform.openai.com/account/api-keys
 
 Click “Create new secret key” and copy it.
 
-Create a .env file in the project root and add:
+Create a .env file in the project root (pm_app) and add:
 
 OPENAI_API_KEY="your-api-key-here"
 USE_MOCK="FALSE"
@@ -59,3 +59,9 @@ python manage.py runserver
 python llm_benchmark.py
 
 ###This will create a benchmarks folder in the project directory
+
+###To run evaluation functions in pm_eval file you should put you API key on top of file for scripts : data_integration_eval.py and scalability_test.py
+
+
+
+
