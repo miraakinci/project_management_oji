@@ -3,7 +3,7 @@ import time, csv, json
 from pathlib import Path
 
 
-openai.api_key = "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"   # or use environment variable
+openai.api_key = ""   
 
 BASE_DIR = Path(__file__).parent
 OUTPUT_FILE = BASE_DIR / "integration_eval_report.csv"
@@ -77,3 +77,4 @@ def run_eval():
 
 if __name__ == "__main__":
     run_eval()
+
