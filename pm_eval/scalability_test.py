@@ -3,7 +3,7 @@ import os, time, csv, asyncio, statistics as stats
 import aiohttp
 
 # CONFIG 
-API_KEY = "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"
+API_KEY = ""
 URL = "https://api.openai.com/v1/chat/completions"
 
 sample_payload = {
@@ -66,3 +66,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
