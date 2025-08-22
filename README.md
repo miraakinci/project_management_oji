@@ -33,6 +33,18 @@ venv\Scripts\Activate
 ### 3. Install Dependencies 
 pip install -r requirements.txt
 
+### 3. Get an OpenAI API Key
+
+Sign in or create an account at https://platform.openai.com/account/api-keys
+
+Click “Create new secret key” and copy it.
+
+Create a .env file in the project root and add:
+
+OPENAI_API_KEY="your-api-key-here"
+USE_MOCK="FALSE"
+EVAL_MODEL="gpt-4o"
+
 ### 4. Run the Application 
 python manage.py runserver
 
